@@ -25,6 +25,7 @@ app = FastAPI(title=APP_NAME, version="2.0.0", docs_url="/docs", redoc_url="/red
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
 if DEMO_FILES_DIR.exists():
     app.mount("/demo-files", StaticFiles(directory=str(DEMO_FILES_DIR)), name="demo-files")
 
@@ -45,37 +46,54 @@ def robots():
     return """User-agent: *
 Allow: /
 Allow: /blog
+Allow: /privacy
 Disallow: /tools/
 Disallow: /auth/
 Disallow: /clients/
 Disallow: /billing/
 Disallow: /docs
 Disallow: /redoc
-Sitemap: /sitemap.xml
+Sitemap: https://stripe-review-production.up.railway.app/sitemap.xml
 """
 
 
 @app.get("/sitemap.xml")
 def sitemap():
-    """
-    Sitemap dinámico que lista landing + blog + todos los posts publicados.
-    Los crawlers lo usan para indexar el contenido SEO.
-    """
     from app.api.routes.blog import _list_posts
+
+    base_url = "https://stripe-review-production.up.railway.app"
 
     urls = [
         ("/", "weekly", "1.0"),
         ("/blog", "weekly", "0.9"),
+        ("/privacy", "yearly", "0.3"),
     ]
+
     for post in _list_posts():
         urls.append((f"/blog/{post['slug']}", "monthly", "0.8"))
 
-    xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>',
-                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    xml_parts = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+
     for loc, changefreq, priority in urls:
-        xml_parts.append(f'  <url><loc>{loc}</loc><changefreq>{changefreq}</changefreq><priority>{priority}</priority></url>')
-    xml_parts.append('</urlset>')
+        xml_parts.append(
+            f"  <url><loc>{base_url}{loc}</loc>"
+            f"<changefreq>{changefreq}</changefreq>"
+            f"<priority>{priority}</priority></url>"
+        )
+
+    xml_parts.append("</urlset>")
     return PlainTextResponse("\n".join(xml_parts), media_type="application/xml")
+
+
+@app.get("/privacy", include_in_schema=False)
+def privacy():
+    privacy_path = WEB_DIR / "privacy.html"
+    if privacy_path.exists():
+        return FileResponse(str(privacy_path), media_type="text/html")
+    return JSONResponse({"ok": False, "message": "Privacy page not found"}, status_code=404)
 
 
 @app.get("/")
