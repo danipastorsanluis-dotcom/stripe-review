@@ -6,7 +6,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
-DATA_DIR = Path(os.getenv("DATA_DIR", "/app/data"))
+DATA_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR / "data")))
 STORAGE_DIR = str(Path(os.getenv("STORAGE_DIR", "/app/storage")))
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "/app/output"))
 DEMO_FILES_DIR = Path(os.getenv("DEMO_FILES_DIR", "/app/demo_files"))
