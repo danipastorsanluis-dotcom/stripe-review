@@ -1,3 +1,0 @@
-payout_id,gross_total,fees_total,refunds_total,net_total,tx_count,status,currencies,has_unhandled_types,unhandled_types
-po_1RealisticA,150.00,-2.10,0.00,143.10,3,matched,EUR,False,
-po_2RealisticB,120.00,0.00,-50.00,51.50,3,warning,EUR,True,other
