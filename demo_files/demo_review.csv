@@ -1,0 +1,4 @@
+automatic_payout_id,balance_transaction_id,gross,fee,net,reporting_category,created,currency,description
+po_demo_review_1,btx_rev_1,100.00,0.00,100.00,charge,2026-03-20T11:00:00Z,EUR,Payment EUR
+po_demo_review_1,btx_rev_2,50.00,0.00,50.00,charge,2026-03-20T11:03:00Z,USD,Payment USD
+po_demo_review_1,btx_rev_3,0.00,-4.00,-4.00,fee,2026-03-20T11:04:00Z,EUR,Stripe fee

@@ -1,0 +1,126 @@
+<!--META-->
+title: "Cómo contabilizar un payout de Stripe en España (PGC) con ejemplo"
+description: "Asiento contable tipo para reflejar un payout de Stripe en contabilidad española. Qué cuentas usar y cómo tratar comisiones, refunds y liquidación bancaria."
+date: "2026-04-21"
+<!--/META-->
+
+<p>Si cobras por Stripe y llevas tu contabilidad según el Plan General Contable (PGC) español, esta es una guía práctica para registrar un payout completo: ventas brutas, comisiones, refunds y liquidación bancaria.</p>
+
+<p><em>Aviso importante: esta guía es orientativa. No sustituye a un asesor fiscal. El tratamiento concreto depende de si eres autónomo, pyme, si emites ticket o factura, si tienes IVA repercutido, etc.</em></p>
+
+<h2>Concepto: Stripe como "cuenta de tránsito"</h2>
+
+<p>Lo clave para contabilizar Stripe correctamente es entender que <strong>entre la venta y el ingreso en tu banco pasan días</strong>. El dinero está temporalmente en Stripe. Por eso la práctica habitual es usar una <em>cuenta puente</em> o <em>clearing account</em>:</p>
+
+<ul>
+<li><strong>Cuenta 572x — Banco Stripe</strong>: cuenta auxiliar bajo el grupo 57 para reflejar el saldo que Stripe tiene de tuyo antes del payout. Algunos usan <code>5721</code>, <code>5725</code> o una auxiliar específica.</li>
+</ul>
+
+<p>De esta forma, la venta afecta a tu balance cuando se produce, pero el movimiento bancario real se refleja cuando Stripe hace el payout. Sin esta cuenta puente, los números nunca van a cuadrar porque siempre hay dinero "en tránsito".</p>
+
+<h2>Ejemplo base</h2>
+
+<p>Supongamos un payout con estas cifras:</p>
+
+<ul>
+<li>Ventas brutas del periodo: <strong>1.000,00 €</strong> (IVA incluido)</li>
+<li>Comisiones Stripe: <strong>-24,50 €</strong></li>
+<li>Reembolsos: <strong>-50,00 €</strong></li>
+<li>Payout neto recibido en banco: <strong>925,50 €</strong></li>
+</ul>
+
+<p>Por simplicidad asumimos IVA general 21% ya repercutido y no desgloso el detalle del IVA en el asiento principal (tu asesor lo lleva en libros de IVA aparte).</p>
+
+<h2>Asiento 1: Reconocimiento de ventas</h2>
+
+<p>Cuando se producen las ventas (no cuando Stripe paga):</p>
+
+<table>
+<thead><tr><th>Cuenta</th><th>Concepto</th><th>Debe</th><th>Haber</th></tr></thead>
+<tbody>
+<tr><td>572x</td><td>Banco Stripe (cuenta puente)</td><td>1.000,00</td><td></td></tr>
+<tr><td>700</td><td>Ventas de mercaderías (base imponible)</td><td></td><td>826,45</td></tr>
+<tr><td>477</td><td>HP IVA repercutido 21%</td><td></td><td>173,55</td></tr>
+</tbody>
+</table>
+
+<p>Aquí el total debe-haber es 1.000 y la base se calcula como <code>1.000 / 1,21 = 826,45</code>.</p>
+
+<h2>Asiento 2: Reembolsos</h2>
+
+<p>Los refunds reducen las ventas. Se pueden registrar individualmente o agrupados por periodo. Usamos la cuenta <strong>708</strong> (Devoluciones de ventas):</p>
+
+<table>
+<thead><tr><th>Cuenta</th><th>Concepto</th><th>Debe</th><th>Haber</th></tr></thead>
+<tbody>
+<tr><td>708</td><td>Devoluciones de ventas</td><td>41,32</td><td></td></tr>
+<tr><td>477</td><td>HP IVA repercutido 21% (rectificación)</td><td>8,68</td><td></td></tr>
+<tr><td>572x</td><td>Banco Stripe</td><td></td><td>50,00</td></tr>
+</tbody>
+</table>
+
+<h2>Asiento 3: Comisiones Stripe</h2>
+
+<p>Las comisiones de Stripe son un gasto. Se usa normalmente la cuenta <strong>626 — Servicios bancarios y similares</strong>. Si Stripe es irlandesa (operando desde Irlanda) puede haber implicaciones de IVA inversión del sujeto pasivo — consulta con tu asesor:</p>
+
+<table>
+<thead><tr><th>Cuenta</th><th>Concepto</th><th>Debe</th><th>Haber</th></tr></thead>
+<tbody>
+<tr><td>626</td><td>Servicios bancarios (comisiones Stripe)</td><td>24,50</td><td></td></tr>
+<tr><td>572x</td><td>Banco Stripe</td><td></td><td>24,50</td></tr>
+</tbody>
+</table>
+
+<h2>Asiento 4: Liquidación bancaria del payout</h2>
+
+<p>Cuando el dinero llega a tu cuenta corriente:</p>
+
+<table>
+<thead><tr><th>Cuenta</th><th>Concepto</th><th>Debe</th><th>Haber</th></tr></thead>
+<tbody>
+<tr><td>572</td><td>Banco c/c (tu banco habitual)</td><td>925,50</td><td></td></tr>
+<tr><td>572x</td><td>Banco Stripe</td><td></td><td>925,50</td></tr>
+</tbody>
+</table>
+
+<p>Después de este asiento, la <strong>cuenta 572x Stripe queda a cero</strong> si todo está correctamente registrado. Si queda con saldo, significa que tienes dinero aún pendiente en Stripe (ventas recientes en "pending"), o que hay algo que no se ha contabilizado.</p>
+
+<h2>Resumen visual</h2>
+
+<pre><code>Ventas brutas              +1.000,00  →  cuenta 572x sube
+Refunds                       -50,00  →  cuenta 572x baja
+Comisiones Stripe             -24,50  →  cuenta 572x baja
+                              -------
+Saldo en Stripe             +925,50   →  se compensará con payout
+
+Payout a banco             +925,50  →  572 sube, 572x baja a 0</code></pre>
+
+<h2>Cuentas más usadas en este tipo de asientos</h2>
+
+<table>
+<thead><tr><th>Cuenta</th><th>Uso</th></tr></thead>
+<tbody>
+<tr><td><strong>572</strong></td><td>Banco c/c principal (tu BBVA, Santander, etc.)</td></tr>
+<tr><td><strong>572x</strong> (572x auxiliar)</td><td>Cuenta puente de Stripe</td></tr>
+<tr><td><strong>700 / 705</strong></td><td>Ventas de mercaderías / servicios</td></tr>
+<tr><td><strong>708</strong></td><td>Devoluciones de ventas</td></tr>
+<tr><td><strong>626</strong></td><td>Servicios bancarios y similares (comisiones)</td></tr>
+<tr><td><strong>477</strong></td><td>HP IVA repercutido</td></tr>
+<tr><td><strong>629</strong></td><td>Otros servicios (si prefieres separar comisión Stripe de comisión banco)</td></tr>
+</tbody>
+</table>
+
+<h2>Errores habituales</h2>
+
+<ul>
+<li><strong>Contabilizar solo el payout neto como venta</strong>. Error grave: no reflejas las ventas brutas ni el IVA correspondiente. Hacienda necesita ver las ventas brutas.</li>
+<li><strong>No usar cuenta puente</strong>. Provoca descuadres permanentes porque el dinero tarda días en llegar al banco.</li>
+<li><strong>Mezclar comisiones con ventas</strong>. La comisión es un gasto (626), no un descuento sobre la venta.</li>
+<li><strong>Ignorar IVA en refunds</strong>. Los reembolsos llevan rectificación del IVA repercutido.</li>
+</ul>
+
+<h2>Automatizar el cálculo del asiento</h2>
+
+<p>Si haces esto todos los meses, lo más tedioso es extraer los totales correctos desde el export de Stripe: sumar ventas brutas, separar refunds, separar fees, manejar multi-moneda y detectar ajustes raros.</p>
+
+<p>StripeReview hace exactamente eso: subes el CSV de Stripe y te da los totales listos por categoría para que solo tengas que llevar esos números a tu asiento. No sustituye a tu contable (y no integra automáticamente con A3, Contasol ni Holded: es un cálculo revisable en Excel), pero te ahorra la parte mecánica de clasificar línea a línea.</p>

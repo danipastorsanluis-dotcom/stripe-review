@@ -1,0 +1,3 @@
+concepto,ventas_brutas,comisiones,refunds,neto,estado
+Stripe payout po_1RealisticA,150.00,-2.10,0.00,143.10,matched
+Stripe payout po_2RealisticB,120.00,0.00,-50.00,51.50,warning

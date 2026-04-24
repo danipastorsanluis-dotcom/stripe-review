@@ -1,0 +1,2 @@
+severity,code,message,payout_id,transaction_id
+low,UNHANDLED_TYPES,Tipos no tratados explícitamente: other,po_2RealisticB,

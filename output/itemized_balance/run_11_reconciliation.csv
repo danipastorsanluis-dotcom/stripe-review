@@ -1,0 +1,3 @@
+payout_id,gross_total,fees_total,refunds_total,net_total,tx_count,status,currencies,has_unhandled_types,unhandled_types
+po_3BalanceA,150.00,-1.75,-35.00,108.45,3,matched,EUR,False,
+po_4BalanceB,80.00,-0.45,0.00,76.65,2,matched,USD,False,

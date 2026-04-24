@@ -1,0 +1,5 @@
+automatic_payout_id,balance_transaction_id,gross,fee,net,reporting_category,created,currency,description
+po_demo_ok_1,btx_ok_1,120.00,0.00,120.00,charge,2026-03-20T10:00:00Z,EUR,Payment A
+po_demo_ok_1,btx_ok_2,80.00,0.00,80.00,charge,2026-03-20T10:05:00Z,EUR,Payment B
+po_demo_ok_1,btx_ok_3,0.00,-6.00,-6.00,fee,2026-03-20T10:06:00Z,EUR,Stripe fee
+po_demo_ok_1,btx_ok_4,-20.00,0.00,-20.00,refund,2026-03-20T10:07:00Z,EUR,Refund A

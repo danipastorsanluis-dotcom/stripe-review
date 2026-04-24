@@ -1,0 +1,86 @@
+<!--META-->
+title: "Mi depósito de Stripe no cuadra con las ventas: 7 causas reales y cómo resolverlas"
+description: "Por qué el importe que Stripe deposita en tu banco no coincide con las ventas de tu tienda. Las 7 causas más frecuentes y cómo identificar cada una."
+date: "2026-04-22"
+<!--/META-->
+
+<p>Es una de las consultas más habituales en foros de contabilidad y ecommerce: <em>"Mi banco dice que Stripe me ha ingresado 842€, pero mis ventas del mes son 1.100€. ¿Dónde están los otros 258€?"</em>.</p>
+
+<p>La respuesta corta es: están ahí, pero repartidos entre comisiones, reembolsos, ajustes y, a veces, cobros pendientes del mes siguiente. En este post te paso las 7 causas reales que hacen que un depósito de Stripe no cuadre con tus ventas.</p>
+
+<h2>1. Las comisiones de Stripe</h2>
+
+<p>La más obvia y la que casi todos olvidan cuando hacen cuentas rápidas. Stripe cobra típicamente el <strong>1,4% + 0,25€</strong> por transacción europea con tarjeta europea, y más para tarjetas no europeas o formas de pago específicas.</p>
+
+<p>Si vendiste 1.000€ en 100 pedidos a 10€, Stripe se queda aproximadamente <code>1.000 × 1.4% + 100 × 0.25 = 14 + 25 = 39€</code>. Tu depósito será de 961€, no 1.000€.</p>
+
+<p><strong>Cómo identificarlo:</strong> en el export de Stripe, filtra por tipo <code>stripe_fee</code>. Suma todos los importes (serán negativos) y verás la comisión total del periodo.</p>
+
+<h2>2. Reembolsos (refunds)</h2>
+
+<p>Si un cliente pidió un reembolso, Stripe devuelve el importe <em>desde tu balance</em>. Aparece como una transacción negativa dentro de algún payout. Por eso aunque facturaras 1.100€, si hiciste 150€ en refunds, el depósito será menor.</p>
+
+<p><strong>Cómo identificarlo:</strong> filtra por tipo <code>refund</code> en tu export. Ojo: los refunds parciales aparecen con el importe parcial, no el total de la venta.</p>
+
+<h2>3. Desfase temporal (tu venta más reciente aún no está "available")</h2>
+
+<p>Stripe tiene dos estados para tu dinero:</p>
+
+<ul>
+  <li><strong>Pending</strong>: dinero de ventas recientes que aún no puede pagarse (típicamente 7 días en Europa, más para cuentas nuevas).</li>
+  <li><strong>Available</strong>: dinero listo para ser payout.</li>
+</ul>
+
+<p>Las ventas de los últimos 7 días pueden no estar incluidas en el payout del mes. Esto es normal y está <a href="https://docs.stripe.com/reports/balance-transaction-types" target="_blank" rel="noopener">documentado por Stripe</a>.</p>
+
+<p><strong>Cómo identificarlo:</strong> mira en tu dashboard de Stripe el "Balance pendiente". Ese importe está en tránsito y llegará en el siguiente payout.</p>
+
+<h2>4. Disputes y chargebacks</h2>
+
+<p>Si un cliente disputa un cargo a su banco, Stripe retira temporalmente el importe + una fee de ~15€ mientras se resuelve. Aparece como <code>adjustment</code> o <code>dispute</code> en el export.</p>
+
+<p><strong>Cómo identificarlo:</strong> filtra por tipos <code>adjustment</code>, <code>dispute</code>, <code>chargeback</code> en el export. Si tu negocio tiene muchas disputes, esto puede explicar grandes diferencias.</p>
+
+<h2>5. Cambio de moneda (FX fees)</h2>
+
+<p>Si recibes pagos en USD pero tu cuenta Stripe es en EUR, Stripe convierte la moneda y cobra una comisión extra (típicamente 2%). Esta conversión aparece como línea separada.</p>
+
+<p><strong>Cómo identificarlo:</strong> busca columna <code>currency</code> y también tipos tipo <code>currency_conversion</code> o líneas de conversión.</p>
+
+<h2>6. Stripe Tax</h2>
+
+<p>Si tienes activado Stripe Tax, la comisión por el cálculo de impuestos (0,5% del importe) también sale de tu balance.</p>
+
+<h2>7. Reservas (reserve holds)</h2>
+
+<p>Para cuentas nuevas o con perfil de riesgo alto, Stripe puede retener un % del balance como "reserva" por varios meses. Aparece como <code>reserve_hold</code>.</p>
+
+<p><strong>Cómo identificarlo:</strong> filtra por <code>reserve_hold</code> o <code>reserved_funds</code>. Si ves importes importantes en esta categoría, habla con Stripe Support.</p>
+
+<h2>Fórmula completa del payout</h2>
+
+<p>La fórmula real es:</p>
+
+<pre><code>Payout neto = Ventas brutas
+             - Comisiones Stripe
+             - Refunds
+             - Disputes y ajustes
+             - Stripe Tax fees
+             - Retenciones (reserves)
+             - Conversiones FX
+             - Ventas "pending" del periodo</code></pre>
+
+<h2>Cómo verificar rápidamente si lo que tú calculas coincide</h2>
+
+<ol>
+<li>Exporta el <em>Payout reconciliation (itemized)</em> desde Stripe</li>
+<li>Filtra por el <code>payout_id</code> que te interesa</li>
+<li>Suma la columna <code>net</code> de todas las líneas</li>
+<li>Ese total debe coincidir al céntimo con el depósito en tu banco</li>
+</ol>
+
+<p>Si no coincide, la causa casi siempre es una de las 7 de arriba. Revísalas en orden.</p>
+
+<h2>Atajo: StripeReview lo hace automáticamente</h2>
+
+<p>Construimos esta herramienta precisamente porque el proceso manual es tedioso. Subes el CSV de Stripe y te da un resumen por payout con el neto calculado, separando ventas, fees, refunds y ajustes. Si hay una incidencia (por ejemplo, multi-moneda o tipos complejos), te lo marca como "Revisar" en lugar de darte un número que parece bien pero no lo es.</p>

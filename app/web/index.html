@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>StripeReview · Revisa payouts de Stripe antes de contabilidad</title>
+  <meta name="description" content="Herramienta gratuita para revisar payouts de Stripe antes de contabilidad. Agrupa, separa fees y refunds, detecta incidencias y descarga un Excel revisable." />
+  <meta name="robots" content="index,follow" />
+  <meta property="og:title" content="StripeReview · Revisa payouts de Stripe antes de contabilidad" />
+  <meta property="og:description" content="Herramienta gratuita. Sube tu export de Stripe y obtén un Excel revisable con payouts agrupados e incidencias detectadas." />
+  <meta property="og:type" content="website" />
+  <link rel="canonical" href="/" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-soft: #11182d;
+      --panel: #121933;
+      --panel-2: #172042;
+      --line: #2a3766;
+      --text: #eef2ff;
+      --muted: #aab6e8;
+      --primary: #7c9cff;
+      --primary-2: #5c7cff;
+      --success-bg: #10281f;
+      --success-line: #2d8a57;
+      --success-text: #cdf5dc;
+      --warn-bg: #2c2411;
+      --warn-line: #d2a33c;
+      --warn-text: #ffe7a8;
+      --error-bg: #31181b;
+      --error-line: #d45b67;
+      --error-text: #ffd5da;
+      --ready-bg: #153122;
+      --ready-text: #d7ffe9;
+      --review-bg: #3b3013;
+      --review-text: #ffe9b5;
+      --blocked-bg: #3a171b;
+      --blocked-text: #ffd9df;
+      --radius: 14px;
+      --radius-lg: 22px;
+      --max: 1180px;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: radial-gradient(circle at top left, rgba(124,156,255,0.10), transparent 26%), var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { width: min(var(--max), calc(100% - 32px)); margin: 0 auto; }
+    .hidden { display: none !important; }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 60;
+      background: rgba(11,16,32,0.84); backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .topbar-inner {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; padding: 14px 0;
+    }
+    .brand { font-weight: 700; font-size: 18px; color: var(--text); }
+    .brand-sub { color: var(--muted); font-size: 13px; margin-left: 8px; }
+    .nav-links { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .nav-links a { color: var(--muted); font-size: 14px; }
+    .nav-links a:hover { color: var(--text); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+      padding: 10px 18px; border-radius: 10px; cursor: pointer; border: 1px solid transparent;
+      font-weight: 600; font-size: 14px; font-family: inherit; text-decoration: none;
+    }
+    .btn-primary { background: var(--primary-2); color: white; }
+    .btn-primary:hover { background: var(--primary); text-decoration: none; }
+    .btn-secondary { background: transparent; color: var(--text); border-color: var(--line); }
+    .btn-secondary:hover { border-color: var(--primary); text-decoration: none; }
+    .btn-ghost { background: transparent; color: var(--muted); }
+    .btn-ghost:hover { color: var(--text); text-decoration: none; }
+
+    .hero { padding: 64px 0 40px; }
+    .hero h1 { font-size: 42px; line-height: 1.15; margin: 0 0 18px; }
+    .hero p.lead { font-size: 18px; color: var(--muted); max-width: 720px; margin: 0 0 24px; }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .eyebrow {
+      display: inline-block; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px;
+      font-size: 13px; color: var(--muted); margin-bottom: 20px;
+    }
+
+    .section { padding: 40px 0; }
+    .section h2 { font-size: 28px; margin: 0 0 12px; }
+    .section .lead { color: var(--muted); max-width: 700px; margin: 0 0 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 820px) { .grid-3 { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 20px;
+    }
+    .card h3 { margin: 0 0 8px; font-size: 18px; }
+    .card p { margin: 0; color: var(--muted); font-size: 14px; }
+    .step-n {
+      display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+      background: var(--primary-2); color: white; border-radius: 50%; font-weight: 700; margin-bottom: 10px;
+    }
+
+    /* Forms (auth) */
+    .auth-shell { padding: 80px 0; display: flex; justify-content: center; }
+    .auth-card {
+      width: 100%; max-width: 420px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg);
+      padding: 32px;
+    }
+    .auth-card h1 { margin: 0 0 8px; font-size: 24px; }
+    .auth-card .lead { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px;
+    }
+    .form-group input {
+      width: 100%; padding: 10px 12px; background: var(--bg-soft);
+      border: 1px solid var(--line); border-radius: 10px; color: var(--text);
+      font-family: inherit; font-size: 14px;
+    }
+    .form-group input:focus { outline: none; border-color: var(--primary); }
+    .form-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .form-switch { margin-top: 16px; font-size: 14px; color: var(--muted); text-align: center; }
+
+    /* Dashboard */
+    .dash-shell { padding: 32px 0 80px; }
+    .dash-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .dash-head h1 { font-size: 28px; margin: 0; }
+    .dash-user { color: var(--muted); font-size: 14px; }
+
+    .clients-bar {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 16px; margin-bottom: 20px;
+    }
+    .clients-bar-row {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .clients-bar-row label { font-size: 13px; color: var(--muted); margin-right: 4px; }
+    .clients-bar-row select, .clients-bar-row input[type="text"] {
+      padding: 8px 12px; background: var(--bg-soft); border: 1px solid var(--line);
+      border-radius: 8px; color: var(--text); font-family: inherit; font-size: 14px;
+    }
+
+    .panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 20px; margin-bottom: 20px;
+    }
+    .panel-title { font-size: 15px; font-weight: 600; margin: 0 0 12px; color: var(--text); }
+
+    .upload-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+    @media (max-width: 820px) { .upload-grid { grid-template-columns: 1fr; } }
+    .upload-field input[type="file"] {
+      width: 100%; padding: 8px; background: var(--bg-soft); border: 1px solid var(--line);
+      border-radius: 8px; color: var(--text); font-family: inherit; font-size: 14px;
+    }
+
+    .status-box { padding: 12px 16px; border-radius: 10px; font-size: 14px; margin: 12px 0; }
+    .status-box.success { background: var(--success-bg); border: 1px solid var(--success-line); color: var(--success-text); }
+    .status-box.warning { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-text); }
+    .status-box.error { background: var(--error-bg); border: 1px solid var(--error-line); color: var(--error-text); }
+
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0; }
+    .metric-card {
+      background: var(--bg-soft); border: 1px solid var(--line); border-radius: 10px; padding: 14px;
+    }
+    .metric-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-card .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+    .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .pill-ready { background: var(--ready-bg); color: var(--ready-text); }
+    .pill-review { background: var(--review-bg); color: var(--review-text); }
+    .pill-blocked { background: var(--blocked-bg); color: var(--blocked-text); }
+
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+    th { background: var(--bg-soft); color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+    tr:last-child td { border-bottom: none; }
+
+    .downloads { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .download-chip {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px;
+      background: var(--bg-soft); border: 1px solid var(--line); border-radius: 999px;
+      font-size: 13px; color: var(--text); text-decoration: none;
+    }
+    .download-chip:hover { border-color: var(--primary); text-decoration: none; }
+
+    .runs-list { display: flex; flex-direction: column; gap: 10px; }
+    .run-row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--bg-soft); border: 1px solid var(--line); border-radius: 10px;
+      padding: 12px 16px; font-size: 14px;
+    }
+    .run-row .info { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .run-row .info small { color: var(--muted); }
+
+    .footer { padding: 40px 0; border-top: 1px solid var(--line); margin-top: 40px; color: var(--muted); font-size: 13px; }
+    .footer a { color: var(--muted); }
+    .footer-links { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container topbar-inner">
+    <div>
+      <span class="brand">StripeReview</span>
+      <span class="brand-sub">· Gratis y de código abierto</span>
+    </div>
+    <nav class="nav-links">
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="/blog">Blog</a>
+      <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+      <div id="navAuth">
+        <a href="#login" class="btn btn-ghost" id="btnNavLogin">Entrar</a>
+        <a href="#register" class="btn btn-primary" id="btnNavRegister">Crear cuenta</a>
+      </div>
+      <div id="navUser" class="hidden" style="display:flex; gap:10px; align-items:center;">
+        <span class="dash-user" id="navUserEmail"></span>
+        <button class="btn btn-ghost" id="btnLogout" type="button">Cerrar sesión</button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<!-- ===== Landing ===== -->
+<main id="pageLanding" class="page">
+  <section class="hero">
+    <div class="container">
+      <div class="eyebrow">Herramienta gratuita · Sin tarjeta · Código abierto</div>
+      <h1>Revisa tus payouts de Stripe antes de pasarlos a contabilidad.</h1>
+      <p class="lead">
+        Sube el export de Stripe. Agrupamos payouts, separamos ventas, fees y refunds,
+        detectamos incidencias y te damos un Excel revisable.
+        Sin promesas de integración mágica: un flujo claro antes del cierre.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#register">Crear cuenta gratis</a>
+        <a class="btn btn-secondary" href="#como-funciona">Ver cómo funciona</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="como-funciona">
+    <div class="container">
+      <h2>Cómo funciona</h2>
+      <p class="lead">Tres pasos. Sin dashboards infinitos, sin promesas de automatización total.</p>
+      <div class="grid-3">
+        <div class="card">
+          <div class="step-n">1</div>
+          <h3>Sube el export de Stripe</h3>
+          <p>CSV, XLSX o XLS. Aceptamos los formatos habituales de Stripe (balance change, payout reconciliation).</p>
+        </div>
+        <div class="card">
+          <div class="step-n">2</div>
+          <h3>Revisamos y explicamos</h3>
+          <p>Agrupamos por payout, separamos ventas/fees/refunds, detectamos incidencias (multimoneda, tipos complejos, neto negativo).</p>
+        </div>
+        <div class="card">
+          <div class="step-n">3</div>
+          <h3>Descargas un Excel revisable</h3>
+          <p>Con un semáforo claro: Listo para exportar, Revisar, o Bloqueado. Tú decides qué hacer con cada payout.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <h2>Qué sí hace y qué no promete</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>✓ Sí hace</h3>
+          <p>Agrupa payouts. Separa fees y refunds. Detecta incidencias. Exporta Excel revisable. Explica por qué un payout no cuadra.</p>
+        </div>
+        <div class="card">
+          <h3>✗ No promete</h3>
+          <p>No es contabilidad automática. No integra directamente con A3, Contasol, Holded ni Sage. No sustituye a tu contable.</p>
+        </div>
+        <div class="card">
+          <h3>💡 Para quién</h3>
+          <p>Autónomos y pymes que cobran por Stripe y quieren revisar antes de pasarlo al asesor o cargarlo en su software.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== Login ===== -->
+<main id="pageLogin" class="page hidden">
+  <section class="auth-shell">
+    <div class="auth-card">
+      <h1>Entrar</h1>
+      <p class="lead">Usa tu cuenta para acceder a tus clientes y tu historial.</p>
+      <form id="formLogin">
+        <div class="form-group">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Contraseña</label>
+          <input id="loginPassword" type="password" required autocomplete="current-password" />
+        </div>
+        <div id="loginStatus" class="status-box hidden"></div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Entrar</button>
+      </form>
+      <div class="form-switch">
+        ¿No tienes cuenta? <a href="#register">Regístrate gratis</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== Register ===== -->
+<main id="pageRegister" class="page hidden">
+  <section class="auth-shell">
+    <div class="auth-card">
+      <h1>Crear cuenta</h1>
+      <p class="lead">Gratis. Sin tarjeta. 3 análisis al mes ahora mismo y sin compromiso.</p>
+      <form id="formRegister">
+        <div class="form-group">
+          <label for="regName">Nombre (opcional)</label>
+          <input id="regName" type="text" maxlength="128" autocomplete="name" />
+        </div>
+        <div class="form-group">
+          <label for="regEmail">Email</label>
+          <input id="regEmail" type="email" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="regPassword">Contraseña</label>
+          <input id="regPassword" type="password" required minlength="8" maxlength="128" autocomplete="new-password" />
+          <div class="form-hint">Mínimo 8 caracteres.</div>
+        </div>
+        <div id="registerStatus" class="status-box hidden"></div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Crear cuenta</button>
+      </form>
+      <div class="form-switch">
+        ¿Ya tienes cuenta? <a href="#login">Inicia sesión</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== Dashboard ===== -->
+<main id="pageDashboard" class="page hidden">
+  <section class="dash-shell">
+    <div class="container">
+      <div class="dash-head">
+        <div>
+          <h1>Panel</h1>
+          <p class="dash-user" id="dashWelcome"></p>
+        </div>
+        <div>
+          <a href="#dashboard" class="btn btn-ghost">Panel</a>
+          <a href="/blog" class="btn btn-ghost">Blog</a>
+        </div>
+      </div>
+
+      <!-- Clients -->
+      <div class="panel">
+        <div class="panel-title">Tus clientes</div>
+        <p class="dash-user" style="margin-top:-4px; margin-bottom:14px;">
+          Los clientes te permiten organizar tus análisis. Cada análisis se guarda bajo un cliente.
+        </p>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+          <input id="newClientName" type="text" placeholder="Nombre cliente (ej: Panadería López SL)" style="flex: 2 1 280px;" />
+          <input id="newClientNif" type="text" placeholder="NIF (opcional)" maxlength="32" style="flex: 1 1 120px;" />
+          <button class="btn btn-primary" id="btnAddClient" type="button">Añadir cliente</button>
+        </div>
+        <div id="clientsList" class="runs-list"></div>
+      </div>
+
+      <!-- Reconciliar -->
+      <div class="panel">
+        <div class="panel-title">Analizar archivo de Stripe</div>
+
+        <div class="clients-bar">
+          <div class="clients-bar-row">
+            <label for="reconcileClientSelect">Cliente:</label>
+            <select id="reconcileClientSelect"><option value="">— Sin asignar a ningún cliente —</option></select>
+          </div>
+        </div>
+
+        <div class="upload-grid">
+          <div class="upload-field">
+            <label style="font-size:13px; color:var(--muted);">Archivo de Stripe (CSV, XLSX o XLS)</label>
+            <input id="reconcileFileInput" type="file" accept=".csv,.xlsx,.xls" />
+          </div>
+          <div class="upload-field">
+            <label style="font-size:13px; color:var(--muted);">Archivo bancario (opcional)</label>
+            <input id="bankFileInput" type="file" accept=".csv,.xlsx,.xls" />
+          </div>
+          <div>
+            <button id="reconcileBtn" class="btn btn-primary" type="button">Analizar</button>
+          </div>
+        </div>
+
+        <div id="reconcileStatus" class="status-box hidden"></div>
+
+        <div id="reconcileResult" class="hidden">
+          <div id="reconcileMetrics" class="metrics"></div>
+          <div class="panel-title">Resumen por payout</div>
+          <div class="table-wrap"><div id="reconcileSummariesTable"></div></div>
+          <div class="panel-title" style="margin-top:20px;">Incidencias detectadas</div>
+          <div class="table-wrap"><div id="reconcileIssuesTable"></div></div>
+          <div class="panel-title" style="margin-top:20px;">Descargas</div>
+          <div id="reconcileDownloads" class="downloads"></div>
+        </div>
+      </div>
+
+      <!-- Histórico -->
+      <div class="panel">
+        <div class="panel-title">Histórico reciente</div>
+        <div id="recentRuns" class="runs-list">
+          <p class="dash-user">Tus análisis aparecerán aquí.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    StripeReview · Herramienta gratuita y de código abierto para revisar payouts de Stripe.
+    <div class="footer-links">
+      <a href="/blog">Blog</a>
+      <a href="/#como-funciona">Cómo funciona</a>
+      <a href="https://docs.stripe.com/reports/payout-reconciliation" target="_blank" rel="noopener">Docs Stripe (payout reconciliation)</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ============= Util =============
+  function el(id) { return document.getElementById(id); }
+  function showEl(e) { e.classList.remove('hidden'); }
+  function hideEl(e) { e.classList.add('hidden'); }
+  function escapeHtml(v) {
+    return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+  function truncate(v, n = 100) { const t = String(v || ''); return t.length <= n ? t : t.slice(0, n) + '…'; }
+  function setStatus(box, msg, type = 'success') {
+    box.className = 'status-box ' + type;
+    box.textContent = msg;
+    showEl(box);
+  }
+
+  async function apiCall(path, options = {}) {
+    const res = await fetch(path, { credentials: 'same-origin', ...options });
+    let body = null;
+    try { body = await res.json(); } catch (e) { /* ignore */ }
+    return { ok: res.ok, status: res.status, body };
+  }
+
+  // ============= Routing (hash based) =============
+  const pages = ['Landing', 'Login', 'Register', 'Dashboard'];
+  function showPage(name) {
+    pages.forEach(p => {
+      const node = el('page' + p);
+      if (!node) return;
+      if (p === name) showEl(node); else hideEl(node);
+    });
+    window.scrollTo({ top: 0 });
+  }
+
+  function handleHash() {
+    const hash = (window.location.hash || '').replace('#', '').toLowerCase();
+    if (hash === 'login') {
+      if (currentUser) { window.location.hash = '#dashboard'; return; }
+      showPage('Login');
+    } else if (hash === 'register') {
+      if (currentUser) { window.location.hash = '#dashboard'; return; }
+      showPage('Register');
+    } else if (hash === 'dashboard') {
+      if (!currentUser) { window.location.hash = '#login'; return; }
+      showPage('Dashboard');
+      refreshDashboard();
+    } else {
+      showPage('Landing');
+    }
+  }
+
+  // ============= Auth state =============
+  let currentUser = null;
+
+  async function loadMe() {
+    const { ok, body } = await apiCall('/auth/me');
+    currentUser = ok ? body.user : null;
+    updateNav();
+  }
+
+  function updateNav() {
+    const navAuth = el('navAuth');
+    const navUser = el('navUser');
+    if (currentUser) {
+      hideEl(navAuth);
+      navUser.classList.remove('hidden');
+      navUser.style.display = 'flex';
+      el('navUserEmail').textContent = currentUser.email;
+    } else {
+      showEl(navAuth);
+      hideEl(navUser);
+    }
+  }
+
+  el('btnLogout').addEventListener('click', async () => {
+    await apiCall('/auth/logout', { method: 'POST' });
+    currentUser = null;
+    updateNav();
+    window.location.hash = '';
+  });
+
+  // ============= Login =============
+  el('formLogin').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const box = el('loginStatus');
+    hideEl(box);
+    const payload = {
+      email: el('loginEmail').value.trim(),
+      password: el('loginPassword').value,
+    };
+    const { ok, body } = await apiCall('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!ok) {
+      setStatus(box, (body && body.detail) || 'No se pudo iniciar sesión', 'error');
+      return;
+    }
+    currentUser = body.user;
+    updateNav();
+    window.location.hash = '#dashboard';
+  });
+
+  // ============= Register =============
+  el('formRegister').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const box = el('registerStatus');
+    hideEl(box);
+    const pwd = el('regPassword').value;
+    if (pwd.length < 8) {
+      setStatus(box, 'La contraseña debe tener al menos 8 caracteres', 'error');
+      return;
+    }
+    const payload = {
+      email: el('regEmail').value.trim(),
+      password: pwd,
+      full_name: el('regName').value.trim(),
+    };
+    const { ok, body } = await apiCall('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!ok) {
+      setStatus(box, (body && body.detail) || 'No se pudo crear la cuenta', 'error');
+      return;
+    }
+    currentUser = body.user;
+    updateNav();
+    window.location.hash = '#dashboard';
+  });
+
+  // ============= Dashboard: clients =============
+  async function refreshClients() {
+    const { ok, body } = await apiCall('/clients');
+    const list = el('clientsList');
+    const select = el('reconcileClientSelect');
+    if (!ok || !body || !Array.isArray(body.items)) {
+      list.innerHTML = '<p class="dash-user">No se pudieron cargar los clientes.</p>';
+      return;
+    }
+    if (body.items.length === 0) {
+      list.innerHTML = '<p class="dash-user">Aún no tienes clientes. Añade uno arriba para organizar tus análisis.</p>';
+    } else {
+      list.innerHTML = body.items.map(c => `
+        <div class="run-row">
+          <div class="info">
+            <strong>${escapeHtml(c.name)}</strong>
+            ${c.nif ? `<small>NIF: ${escapeHtml(c.nif)}</small>` : ''}
+          </div>
+          <div>
+            <button class="btn btn-ghost" data-del="${c.id}" type="button">Eliminar</button>
+          </div>
+        </div>
+      `).join('');
+      list.querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('¿Eliminar este cliente? Sus análisis no se borran, pero pierden la asociación.')) return;
+          await apiCall('/clients/' + btn.getAttribute('data-del'), { method: 'DELETE' });
+          refreshClients();
+        });
+      });
+    }
+    // fill select
+    select.innerHTML = '<option value="">— Sin asignar a ningún cliente —</option>' +
+      body.items.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  }
+
+  el('btnAddClient').addEventListener('click', async () => {
+    const name = el('newClientName').value.trim();
+    const nif = el('newClientNif').value.trim();
+    if (!name) { alert('El nombre del cliente es obligatorio'); return; }
+    const { ok, body } = await apiCall('/clients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, nif }),
+    });
+    if (!ok) {
+      alert((body && body.detail) || 'No se pudo crear el cliente');
+      return;
+    }
+    el('newClientName').value = '';
+    el('newClientNif').value = '';
+    refreshClients();
+  });
+
+  // ============= Dashboard: reconcile =============
+  function renderStatusPill(s) {
+    if (s === 'Listo') return '<span class="pill pill-ready">Listo</span>';
+    if (s === 'Revisar') return '<span class="pill pill-review">Revisar</span>';
+    if (s === 'Bloqueado') return '<span class="pill pill-blocked">Bloqueado</span>';
+    return escapeHtml(s || '');
+  }
+
+  function renderMetrics(body) {
+    const h = body.health || {};
+    return `
+      <div class="metric-card"><div class="label">Transacciones</div><div class="value">${body.transactions_count ?? 0}</div></div>
+      <div class="metric-card"><div class="label">Payouts</div><div class="value">${body.payouts_count ?? 0}</div></div>
+      <div class="metric-card"><div class="label">Listos</div><div class="value">${h.matched_count ?? 0}</div></div>
+      <div class="metric-card"><div class="label">Revisar</div><div class="value">${h.warning_count ?? 0}</div></div>
+      <div class="metric-card"><div class="label">Bloqueados</div><div class="value">${h.issue_count ?? 0}</div></div>
+      <div class="metric-card"><div class="label">Incidencias</div><div class="value">${body.issues_count ?? 0}</div></div>
+    `;
+  }
+
+  function renderSummariesTable(summaries) {
+    if (!summaries || summaries.length === 0) return '<p style="padding:14px;">No hay datos.</p>';
+    let html = '<table><thead><tr><th>Payout</th><th>Ventas</th><th>Fees</th><th>Refunds</th><th>Neto</th><th>Tx</th><th>Estado</th><th>Explicación</th></tr></thead><tbody>';
+    summaries.forEach(r => {
+      html += `<tr>
+        <td>${escapeHtml(r.payout_id)}</td>
+        <td>${escapeHtml(r.gross_total)}</td>
+        <td>${escapeHtml(r.fees_total)}</td>
+        <td>${escapeHtml(r.refunds_total)}</td>
+        <td><strong>${escapeHtml(r.net_total)}</strong></td>
+        <td>${r.tx_count ?? 0}</td>
+        <td>${renderStatusPill(r.display_status || r.status)}</td>
+        <td title="${escapeHtml(r.explanation_summary || '')}">${escapeHtml(truncate(r.explanation_summary || '', 80))}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    return html;
+  }
+
+  function renderIssuesTable(issues) {
+    if (!issues || issues.length === 0) return '<p style="padding:14px;">Sin incidencias.</p>';
+    let html = '<table><thead><tr><th>Severidad</th><th>Código</th><th>Mensaje</th><th>Payout</th><th>Qué hacer</th></tr></thead><tbody>';
+    issues.forEach(i => {
+      html += `<tr>
+        <td>${escapeHtml(i.severity)}</td>
+        <td>${escapeHtml(i.code)}</td>
+        <td>${escapeHtml(i.message)}</td>
+        <td>${escapeHtml(i.payout_id || '—')}</td>
+        <td>${escapeHtml(i.suggested_action || '')}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    return html;
+  }
+
+  function renderDownloads(body) {
+    const d = body.downloads || {};
+    const chips = [];
+    if (d.reconciliation_xlsx) chips.push(['📊 Excel: resumen reconciliado', d.reconciliation_xlsx]);
+    if (d.reconciliation_csv) chips.push(['📄 CSV: resumen reconciliado', d.reconciliation_csv]);
+    if (d.issues_xlsx) chips.push(['⚠️ Excel: incidencias', d.issues_xlsx]);
+    if (d.accounting_xlsx) chips.push(['🧾 Excel: asiento contable (genérico)', d.accounting_xlsx]);
+    if (d.bank_matches_xlsx) chips.push(['🏦 Excel: matching bancario', d.bank_matches_xlsx]);
+    return chips.map(([label, url]) =>
+      `<a class="download-chip" href="${url}" download>${escapeHtml(label)}</a>`
+    ).join('') || '<p class="dash-user">Sin descargas disponibles.</p>';
+  }
+
+  el('reconcileBtn').addEventListener('click', async () => {
+    const fileInput = el('reconcileFileInput');
+    const bankInput = el('bankFileInput');
+    const box = el('reconcileStatus');
+    const result = el('reconcileResult');
+    hideEl(box); hideEl(result);
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+      setStatus(box, 'Selecciona un archivo de Stripe', 'error');
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    if (bankInput.files && bankInput.files[0]) fd.append('bank_file', bankInput.files[0]);
+    const clientId = el('reconcileClientSelect').value;
+    if (clientId) fd.append('client_id', clientId);
+
+    setStatus(box, 'Procesando archivo…', 'warning');
+    const res = await fetch('/tools/reconcile-stripe', {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: fd,
+    });
+    let body = null;
+    try { body = await res.json(); } catch (e) {}
+    if (!res.ok) {
+      setStatus(box, (body && body.detail) || 'Error procesando el archivo', 'error');
+      return;
+    }
+
+    setStatus(box, 'Archivo procesado correctamente', 'success');
+    el('reconcileMetrics').innerHTML = renderMetrics(body);
+    el('reconcileSummariesTable').innerHTML = renderSummariesTable(body.preview && body.preview.summaries);
+    el('reconcileIssuesTable').innerHTML = renderIssuesTable(body.preview && body.preview.issues);
+    el('reconcileDownloads').innerHTML = renderDownloads(body);
+    showEl(result);
+    // Refrescar histórico
+    refreshClients();
+  });
+
+  async function refreshDashboard() {
+    if (!currentUser) return;
+    el('dashWelcome').textContent = 'Hola, ' + (currentUser.full_name || currentUser.email);
+    refreshClients();
+  }
+
+  // ============= Boot =============
+  (async function init() {
+    await loadMe();
+    handleHash();
+  })();
+  window.addEventListener('hashchange', handleHash);
+</script>
+
+</body>
+</html>

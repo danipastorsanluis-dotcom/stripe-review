@@ -1,0 +1,4 @@
+id,Description,Amount,Fee,Net,Created,Payout ID
+ch_1,Venta 1,100.00,2.50,97.50,2023-10-01,po_123
+ch_2,Venta 2,50.00,1.50,48.50,2023-10-01,po_123
+fe_1,Stripe fee,0.00,-1.00,-1.00,2023-10-01,po_123

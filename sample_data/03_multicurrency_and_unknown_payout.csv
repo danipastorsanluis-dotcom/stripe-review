@@ -1,0 +1,11 @@
+id,type,amount,fee,net,currency,created,available_on,payout_id,description
+txn_3001,charge,240.00,-7.26,232.74,EUR,2026-02-20T07:50:00Z,2026-02-23T00:00:00Z,po_3001,EU order paid in EUR
+fee_3001,fee,-7.26,0.00,-7.26,EUR,2026-02-20T07:50:00Z,2026-02-23T00:00:00Z,po_3001,Stripe fee for txn_3001
+txn_3002,charge,320.00,-10.20,309.80,USD,2026-02-20T13:18:00Z,2026-02-23T00:00:00Z,po_3001,US order settled into EUR account
+fee_3002,fee,-10.20,0.00,-10.20,USD,2026-02-20T13:18:00Z,2026-02-23T00:00:00Z,po_3001,Stripe fee for txn_3002
+fx_3002,fee,-4.15,0.00,-4.15,EUR,2026-02-20T13:18:10Z,2026-02-23T00:00:00Z,po_3001,FX conversion fee linked to txn_3002
+txn_3003,charge,180.00,-5.70,174.30,GBP,2026-02-21T09:42:00Z,2026-02-24T00:00:00Z,po_3002,UK order
+fee_3003,fee,-5.70,0.00,-5.70,GBP,2026-02-21T09:42:00Z,2026-02-24T00:00:00Z,po_3002,Stripe fee for txn_3003
+rf_3003,refund,-30.00,0.00,-30.00,GBP,2026-02-22T11:05:00Z,2026-02-24T00:00:00Z,po_3002,Partial refund on UK order
+txn_3004,charge,65.00,-2.19,62.81,EUR,2026-02-22T18:25:00Z,,,Manual payout / not yet assigned to payout
+fee_3004,fee,-2.19,0.00,-2.19,EUR,2026-02-22T18:25:00Z,,,Stripe fee for txn_3004

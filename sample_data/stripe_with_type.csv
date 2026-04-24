@@ -1,0 +1,7 @@
+id,Type,Description,Amount,Fee,Net,Created,Payout ID
+ch_1,charge,Venta OK,100.00,2.50,97.50,2023-10-01,po_200
+ch_2,charge,Venta OK 2,50.00,1.50,48.50,2023-10-01,po_200
+rf_1,refund,Refund parcial,-20.00,0.00,-20.00,2023-10-02,po_201
+fe_1,fee,Stripe fee mensual,0.00,-1.20,-1.20,2023-10-02,po_201
+py_1,payout,Payout informativo,0.00,0.00,0.00,2023-10-02,po_201
+ch_3,charge,Venta huérfana,75.00,2.00,73.00,2023-10-03,

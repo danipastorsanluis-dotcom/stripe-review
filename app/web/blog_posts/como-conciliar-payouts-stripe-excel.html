@@ -1,0 +1,107 @@
+<!--META-->
+title: "Cómo conciliar payouts de Stripe con Excel (guía paso a paso)"
+description: "Guía práctica para conciliar payouts de Stripe usando Excel: qué columnas necesitas, cómo agrupar transacciones y qué errores evitar."
+date: "2026-04-23"
+<!--/META-->
+
+<p>Si cobras por Stripe y al final del mes tu depósito bancario no coincide con las ventas que tienes registradas, no es un error tuyo. Es un problema estructural: un <strong>payout</strong> de Stripe es un lote que agrupa decenas o cientos de transacciones individuales (ventas, comisiones, reembolsos, ajustes) y solo verás el <strong>importe neto</strong> en tu extracto bancario.</p>
+
+<p>En esta guía te explico cómo reconciliar esos payouts usando solo Excel, con los pasos concretos y las trampas habituales que te harán perder tiempo.</p>
+
+<h2>Lo que vas a necesitar</h2>
+
+<ul>
+  <li><strong>Export de Stripe</strong>: idealmente el <em>Payout reconciliation report</em> o el <em>Balance change from activity</em>. Los encuentras en tu dashboard de Stripe en <code>Informes</code> → <code>Informes</code>.</li>
+  <li><strong>Extracto bancario</strong> del mes correspondiente.</li>
+  <li><strong>Excel</strong> o Google Sheets.</li>
+</ul>
+
+<h2>Paso 1: Exporta los datos correctos desde Stripe</h2>
+
+<p>No uses el export genérico de <em>Payments</em>. Ese no incluye los fees ni los refunds y no podrás reconstruir el neto. Busca específicamente:</p>
+
+<ul>
+  <li><strong>Payout reconciliation (itemized)</strong>: te da cada transacción individual con su <code>payout_id</code>, el <code>gross</code>, <code>fee</code>, <code>net</code>, tipo, fecha y moneda.</li>
+  <li><strong>Balance change from activity</strong>: alternativa que lista todas las transacciones que afectaron a tu balance de Stripe.</li>
+</ul>
+
+<h2>Paso 2: Identifica las columnas clave</h2>
+
+<p>En Excel, las columnas que importan de verdad para reconciliar son:</p>
+
+<table>
+<thead><tr><th>Columna</th><th>Para qué sirve</th></tr></thead>
+<tbody>
+<tr><td><code>automatic_payout_id</code> (o <code>payout_id</code>)</td><td>Agrupar las transacciones que forman un mismo depósito bancario.</td></tr>
+<tr><td><code>gross</code> (o <code>amount</code>)</td><td>Importe bruto de cada transacción.</td></tr>
+<tr><td><code>fee</code></td><td>Comisión cobrada por Stripe. Suele ser negativa.</td></tr>
+<tr><td><code>net</code></td><td>Importe neto que efectivamente va al payout.</td></tr>
+<tr><td><code>reporting_category</code> (o <code>type</code>)</td><td>Si es <em>charge</em>, <em>refund</em>, <em>fee</em>, <em>adjustment</em>, etc.</td></tr>
+<tr><td><code>currency</code></td><td>EUR, USD, etc.</td></tr>
+</tbody>
+</table>
+
+<h2>Paso 3: Crea una tabla dinámica por payout</h2>
+
+<p>En Excel, selecciona tus datos y crea una tabla dinámica con:</p>
+
+<ul>
+  <li><strong>Filas</strong>: <code>payout_id</code></li>
+  <li><strong>Valores</strong>: suma de <code>gross</code>, suma de <code>fee</code>, suma de <code>net</code></li>
+  <li><strong>Filtros</strong>: <code>reporting_category</code> si quieres separar refunds y charges</li>
+</ul>
+
+<p>Esto te da una línea por payout con el bruto total, fees totales y neto total. El <code>net</code> debería coincidir con el depósito en tu banco.</p>
+
+<h2>Paso 4: Cruza con el extracto bancario</h2>
+
+<p>Por cada payout de Stripe, busca el depósito correspondiente en tu banco. El concepto suele ser algo como:</p>
+
+<blockquote>
+STRIPE PAYMENTS EUROPE LIMITED
+</blockquote>
+
+<p>Cuidado con dos cosas muy habituales que rompen la conciliación:</p>
+
+<h3>1. Desfase temporal</h3>
+
+<p>Un payout con fecha <code>2026-04-15</code> en Stripe puede aparecer en tu banco el <code>2026-04-17</code> o <code>2026-04-18</code>. No es un error, es el tiempo de liquidación SEPA. Filtra por importe, no por fecha exacta.</p>
+
+<h3>2. Payouts con neto negativo</h3>
+
+<p>Si un mes tuviste muchos reembolsos o disputas, el payout puede ser <strong>negativo</strong>: Stripe te cobra en lugar de pagarte. En el banco verás un <em>cargo</em> con concepto STRIPE, no un abono. Esto confunde a mucha gente.</p>
+
+<h2>Errores habituales que te harán perder horas</h2>
+
+<ul>
+  <li><strong>Mezclar exports</strong>: no uses el export de "Payments" y el de "Payouts" a la vez. Quédate con <em>uno</em> que tenga <code>payout_id</code> en cada línea.</li>
+  <li><strong>Ignorar monedas</strong>: si cobras en USD y EUR, un payout puede agrupar transacciones de ambas. Separa por moneda antes de sumar.</li>
+  <li><strong>Cambios de tipo (FX)</strong>: si Stripe te convierte divisas, hay una línea específica de ajuste FX que NO es fee ni charge.</li>
+  <li><strong>Contar los <code>adjustment</code> como ventas</strong>: los ajustes manuales de Stripe (disputes perdidas, reservas) no son ventas. Trátalos aparte.</li>
+</ul>
+
+<h2>Cuándo Excel deja de ser suficiente</h2>
+
+<p>Si mueves más de 100 transacciones al mes, Excel empieza a ser frágil:</p>
+
+<ul>
+  <li>Las tablas dinámicas se rompen cuando el formato del export cambia</li>
+  <li>No detecta automáticamente si un payout tiene una incidencia</li>
+  <li>No explica por qué el neto no cuadra</li>
+  <li>Cada mes repites el mismo proceso manual</li>
+</ul>
+
+<p>En ese punto merece la pena usar una herramienta específica. Por eso construimos StripeReview: subes el CSV de Stripe y te da en 30 segundos el resumen por payout con un semáforo claro (Listo, Revisar, Bloqueado) y un Excel descargable.</p>
+
+<h2>Checklist rápido</h2>
+
+<ul>
+  <li>☐ Exportar <em>Payout reconciliation itemized</em> desde Stripe</li>
+  <li>☐ Verificar que cada línea tiene <code>payout_id</code></li>
+  <li>☐ Crear tabla dinámica agrupando por payout</li>
+  <li>☐ Cruzar netos con extracto bancario (usar importe, no fecha)</li>
+  <li>☐ Revisar si hay payouts negativos o multi-moneda</li>
+  <li>☐ Documentar ajustes manuales aparte</li>
+</ul>
+
+<p>Si todo cuadra, enhorabuena. Si hay diferencias, las causas más habituales en orden de frecuencia son: desfase temporal, refunds del mes anterior, cambio de moneda y disputes cerradas.</p>
