@@ -31,7 +31,7 @@ UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Límite del plan free. Cuando haya planes de pago, mover a billing.py.
-FREE_PLAN_MAX_RUNS_PER_MONTH = 10
+FREE_PLAN_MAX_RUNS_PER_MONTH = 3
 
 
 def get_current_user(
