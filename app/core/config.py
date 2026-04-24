@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR / "data")))
 STORAGE_DIR = str(Path(os.getenv("STORAGE_DIR", str(BASE_DIR / "storage"))))
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", str(BASE_DIR / "output")))
-DEMO_FILES_DIR = Path(os.getenv("DEMO_FILES_DIR", "/app/demo_files"))
+DEMO_FILES_DIR = Path(os.getenv("DEMO_FILES_DIR", str(BASE_DIR / "demo_files")))
 
 APP_DB_PATH = str(DATA_DIR / "app.sqlite3")
 
