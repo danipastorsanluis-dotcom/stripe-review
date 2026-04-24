@@ -60,7 +60,8 @@ git clone https://github.com/danipastorsanluis-dotcom/stripe-review.git
 cd stripe-review
 python -m venv .venv && source .venv/bin/activate  # o .venv\Scripts\activate en Windows
 pip install -r requirements.txt
-APP_ENV=development AUTH_REQUIRED=false python run_api.py
+set APP_ENV=development
+python run_api.py
 ```
 
 Abrir [http://localhost:8000](http://localhost:8000).
